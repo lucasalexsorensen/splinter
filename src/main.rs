@@ -11,7 +11,7 @@ use esp_hal::clock::CpuClock;
 use esp_hal::interrupt;
 use esp_hal::peripherals::Interrupt;
 use esp_hal::timer::timg::TimerGroup;
-use tasks::{display, gyro, motor, net, rotary};
+use tasks::{display, motor, net, rotary};
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {

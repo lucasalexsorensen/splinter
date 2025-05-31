@@ -1,4 +1,4 @@
-use core::sync::atomic::{AtomicI32, AtomicU32};
+use core::sync::atomic::AtomicI32;
 
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::signal::Signal;

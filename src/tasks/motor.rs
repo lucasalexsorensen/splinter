@@ -1,5 +1,4 @@
 use core::sync::atomic::{AtomicI32, Ordering};
-use defmt::info;
 use embassy_time::{Duration, Timer};
 use esp_hal::gpio::{Level, Output, OutputConfig};
 
@@ -51,6 +50,6 @@ pub async fn motor_task(
 
 fn map_to_strength(val: f64) -> u16 {
     // map from 0-1 to 50-99
-    let strength = (val.abs() * 49.0 as f64) as u16 + 50;
-    strength
+    
+    (val.abs() * 49.0_f64) as u16 + 50
 }

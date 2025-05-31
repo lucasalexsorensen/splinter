@@ -12,7 +12,7 @@ pub async fn gyro_task(i2c_bus: &'static I2c0Bus) {
     match mpu.init(&mut Delay).await {
         Ok(_) => info!("MPU6050 initialized"),
         Err(e) => match e {
-            mpu6050_async::Mpu6050Error::I2c(e) => info!("I2C error"),
+            mpu6050_async::Mpu6050Error::I2c(_e) => info!("I2C error"),
             mpu6050_async::Mpu6050Error::InvalidChipId(e) => info!("Invalid chip ID: {:?}", e),
         },
     }

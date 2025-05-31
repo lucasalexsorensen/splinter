@@ -39,13 +39,10 @@ async fn net_task(mut runner: Runner<'static, WifiDevice<'static>>) {
 #[embassy_executor::task]
 async fn connect_task(mut controller: WifiController<'static>) {
     loop {
-        match esp_wifi::wifi::wifi_state() {
-            WifiState::StaConnected => {
-                // wait until we're no longer connected
-                controller.wait_for_event(WifiEvent::StaDisconnected).await;
-                Timer::after(Duration::from_millis(5000)).await
-            }
-            _ => {}
+        if esp_wifi::wifi::wifi_state() == WifiState::StaConnected {
+            // wait until we're no longer connected
+            controller.wait_for_event(WifiEvent::StaDisconnected).await;
+            Timer::after(Duration::from_millis(5000)).await
         }
         if !matches!(controller.is_started(), Ok(true)) {
             let client_config = Configuration::Client(ClientConfiguration {
@@ -71,12 +68,12 @@ async fn connect_task(mut controller: WifiController<'static>) {
 pub async fn ws_server_task(spawner: Spawner, timer: OtherTimer, mut resources: WifiResources) {
     let esp_wifi_ctrl = &*mk_static!(
         EspWifiController<'static>,
-        init(timer, resources.rng.clone(), resources.wifi_clock).unwrap()
+        init(timer, resources.rng, resources.wifi_clock).unwrap()
     );
-    let (controller, interfaces) = esp_wifi::wifi::new(&esp_wifi_ctrl, resources.wifi).unwrap();
+    let (controller, interfaces) = esp_wifi::wifi::new(esp_wifi_ctrl, resources.wifi).unwrap();
     let wifi_interface = interfaces.sta;
     let wifi_config = embassy_net::Config::dhcpv4(Default::default());
-    let seed = (resources.rng.random() as u64) << 32 | resources.rng.random() as u64;
+    let seed = ((resources.rng.random() as u64) << 32) | resources.rng.random() as u64;
     let (stack, runner) = embassy_net::new(
         wifi_interface,
         wifi_config,
@@ -137,7 +134,7 @@ pub async fn ws_server_task(spawner: Spawner, timer: OtherTimer, mut resources: 
 
 async fn handle_handshake(buffer: &[u8], socket: &mut TcpSocket<'_>) {
     const NEEDLE: &[u8] = b"Sec-WebSocket-Key: ";
-    let key_idx = find_subslice(&buffer, NEEDLE);
+    let key_idx = find_subslice(buffer, NEEDLE);
     if key_idx.is_none() {
         return;
     }
@@ -257,6 +254,6 @@ fn generate_accept_key(key: &[u8]) -> [u8; 28] {
     let hash = hasher.finalize();
 
     let mut output = [0; 28];
-    BASE64.encode_slice(&hash, &mut output).unwrap();
+    BASE64.encode_slice(hash, &mut output).unwrap();
     output
 }

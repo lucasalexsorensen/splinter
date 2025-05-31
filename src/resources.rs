@@ -1,14 +1,14 @@
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::mutex::Mutex;
-use esp_hal::i2c::master::{self, BusTimeout, Config as I2cConfig, I2c};
+use esp_hal::i2c::master::{BusTimeout, Config as I2cConfig, I2c};
 use esp_hal::mcpwm::operator::{PwmPin, PwmPinConfig};
 use esp_hal::mcpwm::timer::PwmWorkingMode;
-use esp_hal::mcpwm::{McPwm, PeripheralClockConfig, PwmPeripheral};
-use esp_hal::peripherals::{I2C0, MCPWM0, RADIO_CLK, TIMG1, WIFI};
+use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
+use esp_hal::peripherals::{MCPWM0, RADIO_CLK, TIMG1, WIFI};
 use esp_hal::rng::Rng;
 use esp_hal::time::Rate;
+use esp_hal::Async;
 use esp_hal::{gpio::AnyPin, peripherals::Peripherals};
-use esp_hal::{Async, Blocking};
 use static_cell::StaticCell;
 
 pub type I2c0Bus = Mutex<NoopRawMutex, I2c<'static, Async>>;

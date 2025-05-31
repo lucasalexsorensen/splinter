@@ -1,8 +1,6 @@
 use core::sync::atomic::{AtomicI32, Ordering};
 
-use defmt::info;
 use embassy_futures::select::select;
-use embassy_time::{Duration, Timer};
 use esp_hal::gpio::{Input, InputConfig};
 use rotary_encoder_hal::Rotary;
 

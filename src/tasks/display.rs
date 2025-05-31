@@ -1,10 +1,5 @@
-use crate::{
-    resources::I2c0Bus,
-    state::{LEFT_ENCODER_COUNT, RIGHT_ENCODER_COUNT},
-};
-use core::{fmt::Write, sync::atomic::Ordering};
+use crate::resources::I2c0Bus;
 use embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice;
-use embassy_time::{Duration, Timer};
 use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,

@@ -2,7 +2,7 @@ use defmt::info;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::signal::Signal;
 use embassy_time::{Delay, Duration, Instant, Timer};
-use esp_hal::gpio::{AnyPin, Input, InputConfig, Level, Output, OutputConfig};
+use esp_hal::gpio::{Input, InputConfig, Level, Output, OutputConfig};
 use hcsr04_async::{Config, DistanceUnit, Hcsr04, Now, TemperatureUnit};
 
 use crate::resources::UltrasonicSensorResources;
