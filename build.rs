@@ -1,4 +1,11 @@
 fn main() {
+    use dotenvy::dotenv;
+    dotenv().ok();
+    let ssid = std::env::var("WIFI_SSID").unwrap();
+    let password = std::env::var("WIFI_PASSWORD").unwrap();
+    println!("cargo:rustc-env=WIFI_SSID={}", ssid);
+    println!("cargo:rustc-env=WIFI_PASSWORD={}", password);
+
     linker_be_nice();
     println!("cargo:rustc-link-arg=-Tdefmt.x");
     // make sure linkall.x is the last linker script (otherwise might cause problems with flip-link)
