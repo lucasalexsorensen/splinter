@@ -18,6 +18,8 @@ The project is split into the following main components:
 
 
 ## Hardware
+<img src="./docs/rat.jpg" alt="Rat" width="400">
+
 Here's the hardware I've been using for the project:
 * NodeMCU-ESP32
 * 2x DFRobot SJ02 motors w/ quadrature encoders
