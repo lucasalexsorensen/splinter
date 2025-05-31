@@ -50,6 +50,6 @@ pub async fn motor_task(
 
 fn map_to_strength(val: f64) -> u16 {
     // map from 0-1 to 50-99
-    
+
     (val.abs() * 49.0_f64) as u16 + 50
 }

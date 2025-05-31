@@ -19,6 +19,7 @@ pub struct WifiResources {
     pub wifi_clock: RADIO_CLK,
 }
 
+#[allow(dead_code)]
 pub struct UltrasonicSensorResources {
     pub trigger_pin: AnyPin,
     pub echo_pin: AnyPin,
