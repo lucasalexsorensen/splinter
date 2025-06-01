@@ -77,7 +77,7 @@ pub fn assign_resources(p: Peripherals) -> Resources {
     let (left_pwm_pin, right_pwm_pin) = mcpwm.operator0.with_pins(
         p.GPIO13,
         PwmPinConfig::UP_ACTIVE_HIGH,
-        p.GPIO27,
+        p.GPIO25,
         PwmPinConfig::UP_ACTIVE_HIGH,
     );
 
@@ -103,7 +103,7 @@ pub fn assign_resources(p: Peripherals) -> Resources {
         right_motor: MotorResources {
             pwm_pin: AnyPwmPin::RightPin(right_pwm_pin),
             backward_pin: p.GPIO26.into(),
-            forward_pin: p.GPIO25.into(),
+            forward_pin: p.GPIO27.into(),
         },
         right_encoder: RotaryEncoderResources {
             encoder_a_pin: p.GPIO34.into(),

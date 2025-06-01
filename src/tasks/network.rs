@@ -1,14 +1,13 @@
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
-use core::fmt::Write;
 use core::sync::atomic::Ordering;
 use embassy_executor::Spawner;
-use embassy_futures::select::{select, Either};
+use embassy_futures::select::{select3, Either3};
 
 use embassy_net::tcp::TcpSocket;
 use embassy_net::{Runner, StackResources};
 use embassy_time::{Duration, Timer};
-use esp_hal::timer::timg::Timer as OtherTimer;
+use esp_hal::timer::timg::Timer as HardwareTimer;
 use sha1::{Digest, Sha1};
 
 use esp_println::println;
@@ -17,6 +16,9 @@ use esp_wifi::wifi::{
 };
 use esp_wifi::{init, EspWifiController};
 
+use crate::command::{Command, DisplayCommand};
+use crate::config::BotConfig;
+use crate::message::Message;
 use crate::resources::WifiResources;
 
 macro_rules! mk_static {
@@ -65,7 +67,7 @@ async fn connect_task(mut controller: WifiController<'static>) {
 }
 
 #[embassy_executor::task]
-pub async fn ws_server_task(spawner: Spawner, timer: OtherTimer, mut resources: WifiResources) {
+pub async fn server_task(spawner: Spawner, timer: HardwareTimer, mut resources: WifiResources) {
     let esp_wifi_ctrl = &*mk_static!(
         EspWifiController<'static>,
         init(timer, resources.rng, resources.wifi_clock).unwrap()
@@ -86,10 +88,9 @@ pub async fn ws_server_task(spawner: Spawner, timer: OtherTimer, mut resources: 
 
     loop {
         if let Some(config) = stack.config_v4() {
-            println!("Got IP: {}", config.address);
-            let mut ip_address = heapless::String::<24>::new();
-            write!(ip_address, "{}", config.address).unwrap();
-            crate::state::IP_ADDRESS.signal(ip_address);
+            crate::state::DISPLAY_COMMAND_QUEUE
+                .send(DisplayCommand::IpChanged(config.address.address().octets()))
+                .await;
             break;
         }
         Timer::after(Duration::from_millis(500)).await;
@@ -106,10 +107,12 @@ pub async fn ws_server_task(spawner: Spawner, timer: OtherTimer, mut resources: 
         let mut buffer = [0; 1024];
         loop {
             buffer.fill(0);
-            let read_future = socket.read(&mut buffer);
-            let delay_future = Timer::after(Duration::from_millis(100));
-            match select(read_future, delay_future).await {
-                Either::First(read_result) => {
+            let incoming_future = socket.read(&mut buffer);
+            let outgoing_future = crate::state::MESSAGE_QUEUE.receive();
+            let timer_future = Timer::after(Duration::from_millis(100));
+
+            match select3(incoming_future, outgoing_future, timer_future).await {
+                Either3::First(read_result) => {
                     if let Ok(0) = read_result {
                         println!("Client disconnected");
                         break;
@@ -121,8 +124,20 @@ pub async fn ws_server_task(spawner: Spawner, timer: OtherTimer, mut resources: 
                         handle_read_frame(&mut buffer, &mut socket).await;
                     }
                 }
-                Either::Second(_) => {
-                    handle_write(&mut socket).await;
+                Either3::Second(message) => {
+                    handle_write(&mut socket, message).await;
+                }
+                Either3::Third(_) => {
+                    let left_count = crate::state::LEFT_ENCODER_COUNT.load(Ordering::Relaxed);
+                    let right_count = crate::state::RIGHT_ENCODER_COUNT.load(Ordering::Relaxed);
+                    handle_write(
+                        &mut socket,
+                        Message::CountUpdated {
+                            left: left_count,
+                            right: right_count,
+                        },
+                    )
+                    .await;
                 }
             }
         }
@@ -154,6 +169,21 @@ async fn handle_handshake(buffer: &[u8], socket: &mut TcpSocket<'_>) {
                     .unwrap();
     socket.write(&accept_key).await.unwrap();
     socket.write(b"\r\n\r\n").await.unwrap();
+
+    // send our initial state by pushing some messages to the queue
+    crate::state::MESSAGE_QUEUE
+        .send(Message::CountUpdated {
+            left: crate::state::LEFT_ENCODER_COUNT.load(Ordering::Relaxed),
+            right: crate::state::RIGHT_ENCODER_COUNT.load(Ordering::Relaxed),
+        })
+        .await;
+
+    crate::state::MESSAGE_QUEUE
+        .send(Message::TargetUpdated {
+            left: crate::state::LEFT_ENCODER_TARGET.load(Ordering::Relaxed),
+            right: crate::state::RIGHT_ENCODER_TARGET.load(Ordering::Relaxed),
+        })
+        .await;
 }
 
 async fn handle_read_frame(buffer: &mut [u8], socket: &mut TcpSocket<'_>) {
@@ -193,39 +223,62 @@ async fn handle_read_frame(buffer: &mut [u8], socket: &mut TcpSocket<'_>) {
         buffer[6 + i] ^= buffer[2 + (i % 4)];
     }
     let unmasked_bytes = &buffer[6..6 + payload_len as usize];
-    // let unmasked_str = core::str::from_utf8(unmasked_bytes).unwrap();
-    // let unmasked_str: heapless::String<128> = unmasked_str.try_into().unwrap();
-    // println!("Unmasked payload: {:?}", unmasked_str);
 
-    const T: i32 = 3000;
     if unmasked_bytes[0] == 0x01 {
-        // increase left target by T, decrease right target by T
-        println!("turning left");
-        crate::state::LEFT_ENCODER_TARGET.fetch_add(T, Ordering::Relaxed);
-        crate::state::RIGHT_ENCODER_TARGET.fetch_sub(T, Ordering::Relaxed);
+        crate::state::COMMAND_QUEUE.send(Command::TurnLeft).await;
     } else if unmasked_bytes[0] == 0x02 {
-        // decrease left target by T, increase right target by T
-        println!("turning right");
-        crate::state::LEFT_ENCODER_TARGET.fetch_sub(T, Ordering::Relaxed);
-        crate::state::RIGHT_ENCODER_TARGET.fetch_add(T, Ordering::Relaxed);
+        crate::state::COMMAND_QUEUE.send(Command::TurnRight).await;
+    } else if unmasked_bytes[0] == 0x03 {
+        crate::state::COMMAND_QUEUE.send(Command::MoveForward).await;
+    } else if unmasked_bytes[0] == 0x04 {
+        crate::state::COMMAND_QUEUE
+            .send(Command::MoveBackward)
+            .await;
+    } else if unmasked_bytes[0] == 0x05 {
+        crate::state::COMMAND_QUEUE.send(Command::DebugMotors).await;
+    } else if unmasked_bytes[0] == 0x06 {
+        // read the next 4 bytes as f32, and the next 4 again as f32
+        let k_p = f32::from_le_bytes([
+            unmasked_bytes[1],
+            unmasked_bytes[2],
+            unmasked_bytes[3],
+            unmasked_bytes[4],
+        ]);
+        let k_d = f32::from_le_bytes([
+            unmasked_bytes[5],
+            unmasked_bytes[6],
+            unmasked_bytes[7],
+            unmasked_bytes[8],
+        ]);
+        crate::state::COMMAND_QUEUE
+            .send(Command::Configure(BotConfig { k_p, k_d }))
+            .await;
     }
 }
 
-async fn handle_write(socket: &mut TcpSocket<'_>) {
-    //let response_data: &[u8] = &[123];
-    let left_count = crate::state::LEFT_ENCODER_COUNT.load(Ordering::Relaxed);
-    let right_count = crate::state::RIGHT_ENCODER_COUNT.load(Ordering::Relaxed);
-    let left_target = crate::state::LEFT_ENCODER_TARGET.load(Ordering::Relaxed);
-    let right_target = crate::state::RIGHT_ENCODER_TARGET.load(Ordering::Relaxed);
-
-    // encode left count, right count as 4 bytes each
-    let response_data = [
-        left_count.to_le_bytes(),
-        right_count.to_le_bytes(),
-        left_target.to_le_bytes(),
-        right_target.to_le_bytes(),
-    ]
-    .concat();
+async fn handle_write(socket: &mut TcpSocket<'_>, message: Message) {
+    let response_data: heapless::Vec<u8, 64> = match message {
+        Message::CountUpdated { left, right } => {
+            let mut v = heapless::Vec::new();
+            v.push(0x01).unwrap();
+            v.extend_from_slice(&left.to_le_bytes()).unwrap();
+            v.extend_from_slice(&right.to_le_bytes()).unwrap();
+            v
+        }
+        Message::TargetUpdated { left, right } => {
+            let mut v = heapless::Vec::new();
+            v.push(0x02).unwrap();
+            v.extend_from_slice(&left.to_le_bytes()).unwrap();
+            v.extend_from_slice(&right.to_le_bytes()).unwrap();
+            v
+        }
+        Message::QueueUpdated { commands } => {
+            let mut v = heapless::Vec::new();
+            v.push(0x03).unwrap();
+            v.extend_from_slice(&commands.len().to_le_bytes()).unwrap();
+            v
+        }
+    };
 
     socket
         // write a binary frame

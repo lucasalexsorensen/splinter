@@ -1,7 +1,12 @@
-use core::sync::atomic::AtomicI32;
+use core::sync::atomic::{AtomicI32, AtomicU32};
 
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::signal::Signal;
+use embassy_sync::channel::Channel;
+use embassy_sync::mutex::Mutex;
+
+use crate::command::{Command, DisplayCommand, MotorCommand};
+use crate::config::BotConfig;
+use crate::message::Message;
 
 // pub static LEFT_DISTANCE: Signal<CriticalSectionRawMutex, f64> = Signal::new();
 // pub static RIGHT_DISTANCE: Signal<CriticalSectionRawMutex, f64> = Signal::new();
@@ -12,4 +17,18 @@ pub static RIGHT_ENCODER_COUNT: AtomicI32 = AtomicI32::new(0);
 pub static LEFT_ENCODER_TARGET: AtomicI32 = AtomicI32::new(0);
 pub static RIGHT_ENCODER_TARGET: AtomicI32 = AtomicI32::new(0);
 
-pub static IP_ADDRESS: Signal<CriticalSectionRawMutex, heapless::String<24>> = Signal::new();
+// pub static IP_ADDRESS: Signal<CriticalSectionRawMutex, heapless::String<24>> = Signal::new();
+// pub static CONFIG: Mutex<CriticalSectionRawMutex, BotConfig> = Mutex::new(BotConfig::default());
+pub static K_P: AtomicU32 = AtomicU32::new(0.001f32.to_bits());
+pub static K_D: AtomicU32 = AtomicU32::new(0.0002f32.to_bits());
+
+pub type CommandQueue = Channel<CriticalSectionRawMutex, Command, 5>;
+pub static COMMAND_QUEUE: CommandQueue = Channel::new();
+pub type MotorCommandQueue = Channel<CriticalSectionRawMutex, MotorCommand, 5>;
+pub static LEFT_MOTOR_QUEUE: MotorCommandQueue = Channel::new();
+pub static RIGHT_MOTOR_QUEUE: MotorCommandQueue = Channel::new();
+type MessageQueue = Channel<CriticalSectionRawMutex, Message, 5>;
+pub static MESSAGE_QUEUE: MessageQueue = Channel::new();
+
+type DisplayCommandQueue = Channel<CriticalSectionRawMutex, DisplayCommand, 5>;
+pub static DISPLAY_COMMAND_QUEUE: DisplayCommandQueue = Channel::new();

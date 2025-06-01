@@ -1,5 +1,8 @@
 #![no_std]
 #![no_main]
+mod command;
+mod config;
+mod message;
 mod resources;
 mod state;
 mod tasks;
@@ -11,7 +14,11 @@ use esp_hal::clock::CpuClock;
 use esp_hal::interrupt;
 use esp_hal::peripherals::Interrupt;
 use esp_hal::timer::timg::TimerGroup;
-use tasks::{display, motor, net, rotary};
+use tasks::{
+    display,
+    motor::{self, MotorSide},
+    network, orchestrator, rotary,
+};
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
@@ -25,6 +32,14 @@ async fn main(spawner: Spawner) {
 
     let timer = TimerGroup::new(resources.timer);
     esp_hal_embassy::init(timer.timer0);
+
+    spawner
+        .spawn(display::display_task(resources.i2c_bus))
+        .unwrap();
+
+    spawner
+        .spawn(network::server_task(spawner, timer.timer1, resources.wifi))
+        .unwrap();
 
     spawner
         .spawn(rotary::rotary_task(
@@ -41,27 +56,12 @@ async fn main(spawner: Spawner) {
         ))
         .unwrap();
     // spawner.spawn(gyro::gyro_task(resources.i2c_bus)).unwrap();
-
     spawner
-        .spawn(motor::motor_task(
-            resources.left_motor,
-            &crate::state::LEFT_ENCODER_COUNT,
-            &crate::state::LEFT_ENCODER_TARGET,
-        ))
+        .spawn(motor::motor_task(resources.left_motor, MotorSide::Left))
         .unwrap();
     spawner
-        .spawn(motor::motor_task(
-            resources.right_motor,
-            &crate::state::RIGHT_ENCODER_COUNT,
-            &crate::state::RIGHT_ENCODER_TARGET,
-        ))
+        .spawn(motor::motor_task(resources.right_motor, MotorSide::Right))
         .unwrap();
 
-    spawner
-        .spawn(display::display_task(resources.i2c_bus))
-        .unwrap();
-
-    spawner
-        .spawn(net::ws_server_task(spawner, timer.timer1, resources.wifi))
-        .unwrap();
+    spawner.spawn(orchestrator::orchestrator_task()).unwrap();
 }
