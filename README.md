@@ -6,7 +6,7 @@ This is the repository for my DIY robotics project, which is inspired by the [mi
 Here are some of the goals / things I wanted to learn more about while building this project:
 * Writing embedded Rust (specifically using [embassy](https://embassy.dev))
 * Control theory fundamentals (PID control, etc.)
-* Low-level networking (TCP/IP, etc.)
+* Low-level networking (TCP/IP, websockets from scratch, etc.)
 * Basic 3D printing and CAD
 * Maze solving algorithms (flood fill, etc.)
 
@@ -15,6 +15,13 @@ Here are some of the goals / things I wanted to learn more about while building 
 The project is split into the following main components:
 * `frontend/` - frontend for the web app
 * `src/` - firmware for the ESP32
+
+## Firmware
+The firmware is heavily designed around the [embassy](https://embassy.dev) framework. This means a lot of concurrent workers and synchronization primitives (like channels, mutexes, etc.)
+
+Here's a high-level overview of the firmware:
+
+![Firmware Overview](./docs/splinter.png)
 
 
 ## Hardware

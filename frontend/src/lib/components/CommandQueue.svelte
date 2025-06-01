@@ -4,7 +4,7 @@
 	import type { Component } from 'svelte';
 	import { fly } from 'svelte/transition';
 
-	let queue = $state<Command[]>([Command.TurnLeft, Command.MoveForward, Command.TurnRight]);
+	let queue = $state<Command[]>([]);
 
 	function commandToIcon(command: Command): Component {
 		switch (command) {
@@ -18,6 +18,8 @@
 				return ArrowDown;
 			case Command.DebugMotors:
 				return Bug;
+			default:
+				throw new Error(`Unknown command: ${command}`);
 		}
 	}
 </script>
