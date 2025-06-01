@@ -1,11 +1,9 @@
-use core::sync::atomic::{AtomicI32, AtomicU32};
+use core::sync::atomic::{AtomicI16, AtomicI32, AtomicU32};
 
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::Channel;
-use embassy_sync::mutex::Mutex;
 
 use crate::command::{Command, DisplayCommand, MotorCommand};
-use crate::config::BotConfig;
 use crate::message::Message;
 
 // pub static LEFT_DISTANCE: Signal<CriticalSectionRawMutex, f64> = Signal::new();
@@ -13,6 +11,9 @@ use crate::message::Message;
 
 pub static LEFT_ENCODER_COUNT: AtomicI32 = AtomicI32::new(0);
 pub static RIGHT_ENCODER_COUNT: AtomicI32 = AtomicI32::new(0);
+pub static GYRO_X: AtomicI16 = AtomicI16::new(0);
+pub static GYRO_Y: AtomicI16 = AtomicI16::new(0);
+pub static GYRO_Z: AtomicI16 = AtomicI16::new(0);
 
 pub static LEFT_ENCODER_TARGET: AtomicI32 = AtomicI32::new(0);
 pub static RIGHT_ENCODER_TARGET: AtomicI32 = AtomicI32::new(0);

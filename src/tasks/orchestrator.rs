@@ -1,7 +1,5 @@
 use core::sync::atomic::Ordering;
 
-use esp_println::println;
-
 use crate::{
     command::{Command, DisplayCommand, MotorCommand},
     message::Message,

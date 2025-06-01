@@ -109,7 +109,7 @@ pub async fn server_task(spawner: Spawner, timer: HardwareTimer, mut resources: 
             buffer.fill(0);
             let incoming_future = socket.read(&mut buffer);
             let outgoing_future = crate::state::MESSAGE_QUEUE.receive();
-            let timer_future = Timer::after(Duration::from_millis(100));
+            let timer_future = Timer::after(Duration::from_millis(50));
 
             match select3(incoming_future, outgoing_future, timer_future).await {
                 Either3::First(read_result) => {
@@ -128,13 +128,21 @@ pub async fn server_task(spawner: Spawner, timer: HardwareTimer, mut resources: 
                     handle_write(&mut socket, message).await;
                 }
                 Either3::Third(_) => {
-                    let left_count = crate::state::LEFT_ENCODER_COUNT.load(Ordering::Relaxed);
-                    let right_count = crate::state::RIGHT_ENCODER_COUNT.load(Ordering::Relaxed);
                     handle_write(
                         &mut socket,
                         Message::CountUpdated {
-                            left: left_count,
-                            right: right_count,
+                            left: crate::state::LEFT_ENCODER_COUNT.load(Ordering::Relaxed),
+                            right: crate::state::RIGHT_ENCODER_COUNT.load(Ordering::Relaxed),
+                        },
+                    )
+                    .await;
+
+                    handle_write(
+                        &mut socket,
+                        Message::GyroUpdated {
+                            x: crate::state::GYRO_X.load(Ordering::Relaxed),
+                            y: crate::state::GYRO_Y.load(Ordering::Relaxed),
+                            z: crate::state::GYRO_Z.load(Ordering::Relaxed),
                         },
                     )
                     .await;
@@ -276,6 +284,14 @@ async fn handle_write(socket: &mut TcpSocket<'_>, message: Message) {
             let mut v = heapless::Vec::new();
             v.push(0x03).unwrap();
             v.extend_from_slice(&commands.len().to_le_bytes()).unwrap();
+            v
+        }
+        Message::GyroUpdated { x, y, z } => {
+            let mut v = heapless::Vec::new();
+            v.push(0x04).unwrap();
+            v.extend_from_slice(&x.to_le_bytes()).unwrap();
+            v.extend_from_slice(&y.to_le_bytes()).unwrap();
+            v.extend_from_slice(&z.to_le_bytes()).unwrap();
             v
         }
     };

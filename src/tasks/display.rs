@@ -7,7 +7,6 @@ use embedded_graphics::{
     prelude::*,
     text::{Baseline, Text},
 };
-use esp_println::println;
 use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306Async};
 
 #[embassy_executor::task]

@@ -15,7 +15,7 @@ use esp_hal::interrupt;
 use esp_hal::peripherals::Interrupt;
 use esp_hal::timer::timg::TimerGroup;
 use tasks::{
-    display,
+    display, gyro,
     motor::{self, MotorSide},
     network, orchestrator, rotary,
 };
@@ -55,7 +55,7 @@ async fn main(spawner: Spawner) {
             false,
         ))
         .unwrap();
-    // spawner.spawn(gyro::gyro_task(resources.i2c_bus)).unwrap();
+    spawner.spawn(gyro::gyro_task(resources.i2c_bus)).unwrap();
     spawner
         .spawn(motor::motor_task(resources.left_motor, MotorSide::Left))
         .unwrap();

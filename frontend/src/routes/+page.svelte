@@ -11,6 +11,7 @@
 	import { onDestroy, onMount } from 'svelte';
 
 	const WS_URL = 'ws://192.168.1.243:9999';
+	// const WS_URL = 'ws://localhost:9999';
 	let connectionState = $state<ConnectionState>('connecting');
 	let ws = $state<WebSocket | null>(null);
 	const isActive = $derived(connectionState === 'connected');
@@ -19,6 +20,9 @@
 	let rightCounts = $state<number[]>([]);
 	let leftTarget = $state<number>(0);
 	let rightTarget = $state<number>(0);
+	let gyroX = $state<number[]>([]);
+	let gyroY = $state<number[]>([]);
+	let gyroZ = $state<number[]>([]);
 
 	function sendCommand(command: Command) {
 		switch (command) {
@@ -72,11 +76,15 @@
 			const message = parsePayload(payload);
 
 			if (message.type === 'count_updated') {
-				leftCounts = leftCounts.slice(-50).concat(message.left);
-				rightCounts = rightCounts.slice(-50).concat(message.right);
+				leftCounts = leftCounts.slice(-99).concat(message.left);
+				rightCounts = rightCounts.slice(-99).concat(message.right);
 			} else if (message.type === 'target_updated') {
 				leftTarget = message.left;
 				rightTarget = message.right;
+			} else if (message.type === 'gyro_updated') {
+				gyroX = gyroX.slice(-99).concat(message.x);
+				gyroY = gyroY.slice(-99).concat(message.y);
+				gyroZ = gyroZ.slice(-99).concat(message.z);
 			}
 		};
 	}

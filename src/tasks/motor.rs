@@ -1,7 +1,6 @@
 use core::sync::atomic::{AtomicI32, Ordering};
 use embassy_time::{Duration, Timer};
 use esp_hal::gpio::{Level, Output, OutputConfig};
-use esp_println::println;
 
 use crate::{
     command::MotorCommand,
@@ -65,8 +64,8 @@ async fn set_target(
     let (forward, backward, pwm_pin) = motor_pins;
     let mut count_within_threshold = 0;
 
-    let mut error = 0;
-    let mut last_error = 0;
+    let mut last_error;
+    let error = 0;
 
     let k_p = f32::from_bits(crate::state::K_P.load(Ordering::Relaxed));
     let k_d = f32::from_bits(crate::state::K_D.load(Ordering::Relaxed));

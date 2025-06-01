@@ -1156,22 +1156,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "mpu6050-async"
-version = "0.0.2"
-source = "git+https://github.com/kalkyl/mpu6050-async.git?rev=4861c61#4861c61f16fb5777b8b12203f6a100ed4c2e4923"
-dependencies = [
- "embedded-hal 1.0.0",
- "embedded-hal-async",
- "libm",
-]
-
-[[package]]
 name = "mpu6050-dmp"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bc6140a2853ffebdcfe2c408d7e37ee7f3f5689d7d3e25302f6bb1ac4f3fccc"
 dependencies = [
  "embedded-hal 1.0.0",
+ "embedded-hal-async",
  "libm",
 ]
 
@@ -1498,7 +1489,6 @@ dependencies = [
  "hcsr04_async",
  "heapless",
  "libm",
- "mpu6050-async",
  "mpu6050-dmp",
  "rotary-encoder-hal",
  "sha1",

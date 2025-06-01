@@ -44,7 +44,6 @@
 	"dependencies": {
 		"@lucide/svelte": "^0.511.0",
 		"daisyui": "^5.0.43",
-		"echarts": "^5.6.0",
-		"svelte-echarts": "^1.0.0"
+		"echarts": "^5.6.0"
 	}
 }
