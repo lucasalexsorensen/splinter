@@ -1,6 +1,7 @@
 use crate::command::Command;
 use heapless::Vec;
 
+#[allow(clippy::enum_variant_names)]
 pub enum Message {
     CountUpdated {
         left: i32,
