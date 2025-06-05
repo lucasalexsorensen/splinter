@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rat Device Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .logs {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .command-section {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rat Device Client</h1>
+        
+        <div id="status" class="status">Not connected</div>
+        
+        <div>
+            <button id="connectBtn">Connect to Rat Device</button>
+            <button id="disconnectBtn" disabled>Disconnect</button>
+        </div>
+        
+        <div class="command-section">
+            <h3>UART Service</h3>
+            <button id="readTxBtn" disabled>Read TX Characteristic</button>
+            <button id="subscribeTxBtn" disabled>Subscribe to TX Notifications</button>
+        </div>
+        
+        <div class="command-section">
+            <h3>Send Commands (RX Characteristic)</h3>
+            <select id="commandSelect">
+                <option value="0x01">GET_STATUS (0x01)</option>
+                <option value="0x02">SET_CONFIG (0x02)</option>
+                <option value="0x03">RESET (0x03)</option>
+                <option value="0xFF">PING (0xFF)</option>
+            </select>
+            <input type="text" id="payloadInput" placeholder="Optional payload (hex bytes, e.g., AB CD EF)">
+            <button id="sendCommandBtn" disabled>Send Command</button>
+        </div>
+
+        <div class="command-section">
+            <h3>Raw Data</h3>
+            <input type="text" id="rawDataInput" placeholder="Raw hex data (e.g., 01 02 03 FF)">
+            <button id="sendRawBtn" disabled>Send Raw Data</button>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <h3>Logs</h3>
+            <div id="logs" class="logs"></div>
+            <button onclick="clearLogs()">Clear Logs</button>
+        </div>
+    </div>
+
+    <script>
+        // UUIDs from your Rust UART service
+        const UART_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+        const UART_TX_CHARACTERISTIC_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // TX (device sends to client)
+        const UART_RX_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // RX (client sends to device)
+
+        let device = null;
+        let server = null;
+        let uartService = null;
+        let txCharacteristic = null;
+        let rxCharacteristic = null;
+
+        // Logging function
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logs = document.getElementById('logs');
+            logs.textContent += `[${timestamp}] ${message}\n`;
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').textContent = '';
+        }
+
+        function updateConnectionStatus(connected) {
+            const status = document.getElementById('status');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const readTxBtn = document.getElementById('readTxBtn');
+            const subscribeTxBtn = document.getElementById('subscribeTxBtn');
+            const sendCommandBtn = document.getElementById('sendCommandBtn');
+            const sendRawBtn = document.getElementById('sendRawBtn');
+
+            if (connected) {
+                status.textContent = 'Connected to Rat device';
+                status.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                readTxBtn.disabled = false;
+                subscribeTxBtn.disabled = false;
+                sendCommandBtn.disabled = false;
+                sendRawBtn.disabled = false;
+            } else {
+                status.textContent = 'Not connected';
+                status.className = 'status';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                readTxBtn.disabled = true;
+                subscribeTxBtn.disabled = true;
+                sendCommandBtn.disabled = true;
+                sendRawBtn.disabled = true;
+            }
+        }
+
+        async function connectToDevice() {
+            try {
+                log('Requesting Bluetooth device...');
+                
+                // Try to find a device advertising the UART service first
+                try {
+                    log('Trying to find device advertising UART service...');
+                    device = await navigator.bluetooth.requestDevice({
+                        filters: [{
+                            services: [UART_SERVICE_UUID]
+                        }],
+                        optionalServices: [UART_SERVICE_UUID]
+                    });
+                    log('Found device advertising UART service');
+                } catch (serviceError) {
+                    log(`No device found advertising UART service: ${serviceError.message}`);
+                    log('Trying to find device by name or accept all devices...');
+                    
+                    // Fallback: try by name first
+                    try {
+                        device = await navigator.bluetooth.requestDevice({
+                            filters: [{
+                                name: 'Rat'
+                            }],
+                            optionalServices: [UART_SERVICE_UUID]
+                        });
+                        log('Found device by name');
+                    } catch (nameError) {
+                        log(`No device found by name: ${nameError.message}`);
+                        log('Accepting all devices...');
+                        // Final fallback: accept all devices
+                        device = await navigator.bluetooth.requestDevice({
+                            acceptAllDevices: true, 
+                            optionalServices: [UART_SERVICE_UUID]
+                        });
+                        log('Accepted device from all available devices');
+                    }
+                }
+
+                log(`Selected device: ${device.name}`);
+                
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+                
+                log('Connecting to GATT server...');
+                server = await device.gatt.connect();
+                
+                log('Getting UART Service...');
+                
+                // First, let's see what services are actually available
+                log('Discovering available services...');
+                try {
+                    const services = await server.getPrimaryServices();
+                    log(`Found ${services.length} services:`);
+                    for (const service of services) {
+                        log(`  - Service UUID: ${service.uuid}`);
+                    }
+                } catch (e) {
+                    log(`Error getting services: ${e.message}`);
+                }
+                
+                uartService = await server.getPrimaryService(UART_SERVICE_UUID);
+                
+                log('Getting TX Characteristic...');
+                txCharacteristic = await uartService.getCharacteristic(UART_TX_CHARACTERISTIC_UUID);
+                
+                log('Getting RX Characteristic...');
+                rxCharacteristic = await uartService.getCharacteristic(UART_RX_CHARACTERISTIC_UUID);
+                
+                updateConnectionStatus(true);
+                log('Successfully connected to Rat device!');
+                
+            } catch (error) {
+                log(`Error: ${error.message}`);
+                const status = document.getElementById('status');
+                status.textContent = `Error: ${error.message}`;
+                status.className = 'status error';
+            }
+        }
+
+        function onDisconnected() {
+            log('Device disconnected');
+            updateConnectionStatus(false);
+            device = null;
+            server = null;
+            uartService = null;
+            txCharacteristic = null;
+            rxCharacteristic = null;
+        }
+
+        async function disconnect() {
+            if (server && server.connected) {
+                server.disconnect();
+                log('Disconnected from device');
+            }
+        }
+
+        async function readTxCharacteristic() {
+            try {
+                if (!txCharacteristic) {
+                    throw new Error('TX characteristic not available');
+                }
+                
+                const value = await txCharacteristic.readValue();
+                const data = new Uint8Array(value.buffer);
+                const hexString = Array.from(data).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+                
+                log(`TX data read: ${hexString}`);
+                
+            } catch (error) {
+                log(`Error reading TX characteristic: ${error.message}`);
+            }
+        }
+
+        async function subscribeToTxNotifications() {
+            try {
+                if (!txCharacteristic) {
+                    throw new Error('TX characteristic not available');
+                }
+                
+                await txCharacteristic.startNotifications();
+                txCharacteristic.addEventListener('characteristicvaluechanged', handleTxNotification);
+                log('Subscribed to TX notifications');
+                
+            } catch (error) {
+                log(`Error subscribing to TX notifications: ${error.message}`);
+            }
+        }
+
+        function handleTxNotification(event) {
+            const value = event.target.value;
+            const data = new Uint8Array(value.buffer);
+            const hexString = Array.from(data).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+            log(`TX notification: ${hexString}`);
+            
+            // Parse the binary data according to your protocol
+            if (data.length >= 3) {
+                const command = data[0];
+                const counter = data[1];
+                const status = data[2];
+                log(`  -> Command: 0x${command.toString(16).padStart(2, '0').toUpperCase()}, Counter: ${counter}, Status: 0x${status.toString(16).padStart(2, '0').toUpperCase()}`);
+            }
+        }
+
+        function parseHexString(hexString) {
+            // Remove spaces and convert to bytes
+            const cleanHex = hexString.replace(/\s+/g, '');
+            if (cleanHex.length % 2 !== 0) {
+                throw new Error('Invalid hex string length');
+            }
+            
+            const bytes = [];
+            for (let i = 0; i < cleanHex.length; i += 2) {
+                const byte = parseInt(cleanHex.substr(i, 2), 16);
+                if (isNaN(byte)) {
+                    throw new Error(`Invalid hex byte: ${cleanHex.substr(i, 2)}`);
+                }
+                bytes.push(byte);
+            }
+            return new Uint8Array(bytes);
+        }
+
+        async function sendCommand() {
+            try {
+                if (!rxCharacteristic) {
+                    throw new Error('RX characteristic not available');
+                }
+                
+                const commandSelect = document.getElementById('commandSelect');
+                const payloadInput = document.getElementById('payloadInput');
+                
+                const commandByte = parseInt(commandSelect.value, 16);
+                let data = [commandByte];
+                
+                // Add payload if provided
+                const payloadText = payloadInput.value.trim();
+                if (payloadText) {
+                    const payloadBytes = parseHexString(payloadText);
+                    data = data.concat(Array.from(payloadBytes));
+                }
+                
+                // Pad to 20 bytes if needed (matching your Rust code)
+                while (data.length < 20) {
+                    data.push(0);
+                }
+                
+                const value = new Uint8Array(data);
+                const hexString = Array.from(value).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+                
+                await rxCharacteristic.writeValue(value);
+                log(`Sent command: ${hexString}`);
+                
+            } catch (error) {
+                log(`Error sending command: ${error.message}`);
+            }
+        }
+
+        async function sendRawData() {
+            try {
+                if (!rxCharacteristic) {
+                    throw new Error('RX characteristic not available');
+                }
+                
+                const rawDataInput = document.getElementById('rawDataInput');
+                const rawText = rawDataInput.value.trim();
+                
+                if (!rawText) {
+                    throw new Error('No raw data provided');
+                }
+                
+                const data = parseHexString(rawText);
+                const hexString = Array.from(data).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+                
+                await rxCharacteristic.writeValue(data);
+                log(`Sent raw data: ${hexString}`);
+                
+            } catch (error) {
+                log(`Error sending raw data: ${error.message}`);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('connectBtn').addEventListener('click', connectToDevice);
+        document.getElementById('disconnectBtn').addEventListener('click', disconnect);
+        document.getElementById('readTxBtn').addEventListener('click', readTxCharacteristic);
+        document.getElementById('subscribeTxBtn').addEventListener('click', subscribeToTxNotifications);
+        document.getElementById('sendCommandBtn').addEventListener('click', sendCommand);
+        document.getElementById('sendRawBtn').addEventListener('click', sendRawData);
+
+        // Check if Web Bluetooth is supported
+        if (!navigator.bluetooth) {
+            log('Web Bluetooth API is not supported in this browser.');
+            document.getElementById('connectBtn').disabled = true;
+        } else {
+            log('Web Bluetooth API is supported. Ready to connect to Rat device.');
+        }
+    </script>
+</body>
+</html> 

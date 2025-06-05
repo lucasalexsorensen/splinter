@@ -12,7 +12,7 @@ pub async fn gyro_task(i2c_bus: &'static I2c0Bus) {
     let device = I2cDevice::new(i2c_bus);
     let mut mpu = Mpu6050::new(device, Address::default()).await.unwrap();
 
-    println!("initializing DMP");
+    // println!("initializing DMP");
     mpu.initialize_dmp(&mut Delay).await.unwrap();
 
     // println!("calibrating");

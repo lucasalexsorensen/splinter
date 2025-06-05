@@ -1,23 +1,25 @@
 <script lang="ts">
-	import { Command } from '$lib/types';
-	import { ArrowLeft, Bug, ArrowRight, ArrowUp, ArrowDown } from '@lucide/svelte';
+	import { type Command } from '$lib/types';
+	import { ArrowLeft, Bug, ArrowRight, ArrowUp, ArrowDown, Settings } from '@lucide/svelte';
 	import type { Component } from 'svelte';
 	import { fly } from 'svelte/transition';
 
 	let queue = $state<Command[]>([]);
 
 	function commandToIcon(command: Command): Component {
-		switch (command) {
-			case Command.TurnLeft:
+		switch (command.type) {
+			case 'turn_left':
 				return ArrowLeft;
-			case Command.TurnRight:
+			case 'turn_right':
 				return ArrowRight;
-			case Command.MoveForward:
+			case 'move_forward':
 				return ArrowUp;
-			case Command.MoveBackward:
+			case 'move_backward':
 				return ArrowDown;
-			case Command.DebugMotors:
+			case 'debug_motors':
 				return Bug;
+			case 'configure':
+				return Settings;
 			default:
 				throw new Error(`Unknown command: ${command}`);
 		}

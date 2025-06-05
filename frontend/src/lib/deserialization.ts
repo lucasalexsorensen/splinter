@@ -1,69 +1,33 @@
-import type { Command } from './types';
+import type { Message, MessageType } from './types';
 
-export function parsePayload(bytes: Uint8Array): Message {
-	const parser = new Parser(bytes);
-	const type = parser.readMessageType();
+export function deserialize(bytes: Uint8Array): Message {
+	const scanner = new Scanner(bytes);
+	const type = scanner.readMessageType();
 
 	switch (type) {
 		case 'count_updated':
 			return {
 				type: 'count_updated',
-				left: parser.readInt32(),
-				right: parser.readInt32()
+				left: scanner.readInt32(),
+				right: scanner.readInt32()
 			};
 		case 'target_updated':
 			return {
 				type: 'target_updated',
-				left: parser.readInt32(),
-				right: parser.readInt32()
-			};
-		case 'queue_updated':
-			return {
-				type: 'queue_updated',
-				commands: []
+				left: scanner.readInt32(),
+				right: scanner.readInt32()
 			};
 		case 'gyro_updated':
 			return {
 				type: 'gyro_updated',
-				x: parser.readInt16(),
-				y: parser.readInt16(),
-				z: parser.readInt16()
+				x: scanner.readInt16(),
+				y: scanner.readInt16(),
+				z: scanner.readInt16()
 			};
 	}
 }
 
-type MessageType = 'count_updated' | 'target_updated' | 'queue_updated' | 'gyro_updated';
-
-type Message =
-	| CountUpdatedMessage
-	| TargetUpdatedMessage
-	| QueueUpdatedMessage
-	| GyroUpdatedMessage;
-type CountUpdatedMessage = {
-	type: 'count_updated';
-	left: number;
-	right: number;
-};
-
-type TargetUpdatedMessage = {
-	type: 'target_updated';
-	left: number;
-	right: number;
-};
-
-type QueueUpdatedMessage = {
-	type: 'queue_updated';
-	commands: Command[];
-};
-
-type GyroUpdatedMessage = {
-	type: 'gyro_updated';
-	x: number;
-	y: number;
-	z: number;
-};
-
-class Parser {
+class Scanner {
 	private bytes: Uint8Array;
 	private offset: number;
 
@@ -82,8 +46,6 @@ class Parser {
 			case 0x02:
 				return 'target_updated';
 			case 0x03:
-				return 'queue_updated';
-			case 0x04:
 				return 'gyro_updated';
 			default:
 				throw new Error(`Unknown message type: ${type}`);

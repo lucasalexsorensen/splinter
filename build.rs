@@ -3,6 +3,8 @@ fn main() {
     dotenv().ok();
     let ssid = std::env::var("WIFI_SSID").unwrap();
     let password = std::env::var("WIFI_PASSWORD").unwrap();
+    println!("cargo:warning=WIFI_SSID={}", ssid);
+    println!("cargo:warning=WIFI_PASSWORD={}", password);
     println!("cargo:rustc-env=WIFI_SSID={}", ssid);
     println!("cargo:rustc-env=WIFI_PASSWORD={}", password);
 

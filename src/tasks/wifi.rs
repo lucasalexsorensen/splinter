@@ -1,3 +1,5 @@
+#![cfg(feature = "wifi")]
+
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use core::sync::atomic::Ordering;
@@ -12,7 +14,8 @@ use sha1::{Digest, Sha1};
 
 use esp_println::println;
 use esp_wifi::wifi::{
-    ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent, WifiState,
+    AuthMethod, ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent,
+    WifiState,
 };
 use esp_wifi::{init, EspWifiController};
 
@@ -265,39 +268,8 @@ async fn handle_read_frame(buffer: &mut [u8], socket: &mut TcpSocket<'_>) {
 }
 
 async fn handle_write(socket: &mut TcpSocket<'_>, message: Message) {
-    let response_data: heapless::Vec<u8, 64> = match message {
-        Message::CountUpdated { left, right } => {
-            let mut v = heapless::Vec::new();
-            v.push(0x01).unwrap();
-            v.extend_from_slice(&left.to_le_bytes()).unwrap();
-            v.extend_from_slice(&right.to_le_bytes()).unwrap();
-            v
-        }
-        Message::TargetUpdated { left, right } => {
-            let mut v = heapless::Vec::new();
-            v.push(0x02).unwrap();
-            v.extend_from_slice(&left.to_le_bytes()).unwrap();
-            v.extend_from_slice(&right.to_le_bytes()).unwrap();
-            v
-        }
-        Message::QueueUpdated { commands } => {
-            let mut v = heapless::Vec::new();
-            v.push(0x03).unwrap();
-            v.extend_from_slice(&commands.len().to_le_bytes()).unwrap();
-            v
-        }
-        Message::GyroUpdated { x, y, z } => {
-            let mut v = heapless::Vec::new();
-            v.push(0x04).unwrap();
-            v.extend_from_slice(&x.to_le_bytes()).unwrap();
-            v.extend_from_slice(&y.to_le_bytes()).unwrap();
-            v.extend_from_slice(&z.to_le_bytes()).unwrap();
-            v
-        }
-    };
-
+    let response_bytes: [u8; 20] = message.into();
     socket
-        // write a binary frame
         .write(&[0b10000010, response_data.len() as u8])
         .await
         .unwrap();

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Command } from '$lib/types';
+	import { type Command } from '$lib/types';
 	import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Bug } from '@lucide/svelte';
 
 	type Props = {
@@ -15,14 +15,14 @@
 		<button
 			class="btn btn-soft btn-primary"
 			{disabled}
-			onclick={() => sendCommand(Command.TurnLeft)}
+			onclick={() => sendCommand({ type: 'turn_left' })}
 		>
 			<ArrowLeft />
 		</button>
 		<button
 			class="btn btn-soft btn-primary"
 			{disabled}
-			onclick={() => sendCommand(Command.TurnRight)}
+			onclick={() => sendCommand({ type: 'turn_right' })}
 		>
 			<ArrowRight />
 		</button>
@@ -31,14 +31,14 @@
 		<button
 			class="btn btn-soft btn-primary"
 			{disabled}
-			onclick={() => sendCommand(Command.MoveForward)}
+			onclick={() => sendCommand({ type: 'move_forward' })}
 		>
 			<ArrowUp />
 		</button>
 		<button
 			class="btn btn-soft btn-primary"
 			{disabled}
-			onclick={() => sendCommand(Command.MoveBackward)}
+			onclick={() => sendCommand({ type: 'move_backward' })}
 		>
 			<ArrowDown />
 		</button>
@@ -48,7 +48,7 @@
 		<button
 			class="btn btn-soft btn-primary"
 			{disabled}
-			onclick={() => sendCommand(Command.DebugMotors)}
+			onclick={() => sendCommand({ type: 'debug_motors' })}
 		>
 			<Bug />
 		</button>

@@ -2,7 +2,7 @@
 This is the repository for my DIY robotics project, which is inspired by the [micromouse](https://en.wikipedia.org/wiki/Micromouse) competition.
 
 
-## Goals
+## High-level goals
 Here are some of the goals / things I wanted to learn more about while building this project:
 * Writing embedded Rust (specifically using [embassy](https://embassy.dev))
 * Control theory fundamentals (PID control, etc.)

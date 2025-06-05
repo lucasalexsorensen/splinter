@@ -4,7 +4,7 @@ use esp_hal::i2c::master::{BusTimeout, Config as I2cConfig, I2c};
 use esp_hal::mcpwm::operator::{PwmPin, PwmPinConfig};
 use esp_hal::mcpwm::timer::PwmWorkingMode;
 use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
-use esp_hal::peripherals::{MCPWM0, RADIO_CLK, TIMG1, WIFI};
+use esp_hal::peripherals::{BT, MCPWM0, RADIO_CLK, TIMG1, WIFI};
 use esp_hal::rng::Rng;
 use esp_hal::time::Rate;
 use esp_hal::Async;
@@ -15,35 +15,44 @@ pub type I2c0Bus = Mutex<NoopRawMutex, I2c<'static, Async>>;
 
 pub struct WifiResources {
     pub rng: Rng,
-    pub wifi: WIFI,
-    pub wifi_clock: RADIO_CLK,
+    pub wifi: WIFI<'static>,
+    pub wifi_clock: RADIO_CLK<'static>,
+}
+
+pub struct BluetoothResources {
+    pub rng: Rng,
+    pub bt: BT<'static>,
+    pub bt_clock: RADIO_CLK<'static>,
 }
 
 #[allow(dead_code)]
 pub struct UltrasonicSensorResources {
-    pub trigger_pin: AnyPin,
-    pub echo_pin: AnyPin,
+    pub trigger_pin: AnyPin<'static>,
+    pub echo_pin: AnyPin<'static>,
 }
 
 pub enum AnyPwmPin {
-    LeftPin(PwmPin<'static, MCPWM0, 0, true>),
-    RightPin(PwmPin<'static, MCPWM0, 0, false>),
+    LeftPin(PwmPin<'static, MCPWM0<'static>, 0, true>),
+    RightPin(PwmPin<'static, MCPWM0<'static>, 0, false>),
 }
 
 pub struct MotorResources {
     pub pwm_pin: AnyPwmPin,
-    pub forward_pin: AnyPin,
-    pub backward_pin: AnyPin,
+    pub forward_pin: AnyPin<'static>,
+    pub backward_pin: AnyPin<'static>,
 }
 
 pub struct RotaryEncoderResources {
-    pub encoder_a_pin: AnyPin,
-    pub encoder_b_pin: AnyPin,
+    pub encoder_a_pin: AnyPin<'static>,
+    pub encoder_b_pin: AnyPin<'static>,
 }
 
 pub struct Resources {
+    #[cfg(feature = "wifi")]
     pub wifi: WifiResources,
-    pub timer: TIMG1,
+    #[cfg(feature = "bluetooth")]
+    pub bluetooth: BluetoothResources,
+    pub timer: TIMG1<'static>,
     pub i2c_bus: &'static I2c0Bus,
     pub left_motor: MotorResources,
     pub left_encoder: RotaryEncoderResources,
@@ -84,10 +93,17 @@ pub fn assign_resources(p: Peripherals) -> Resources {
     let rng = Rng::new(p.RNG);
 
     Resources {
+        #[cfg(feature = "wifi")]
         wifi: WifiResources {
             rng,
             wifi: p.WIFI,
             wifi_clock: p.RADIO_CLK,
+        },
+        #[cfg(feature = "bluetooth")]
+        bluetooth: BluetoothResources {
+            rng,
+            bt: p.BT,
+            bt_clock: p.RADIO_CLK,
         },
         timer: p.TIMG1,
         i2c_bus,

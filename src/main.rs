@@ -17,8 +17,14 @@ use esp_hal::timer::timg::TimerGroup;
 use tasks::{
     display, gyro,
     motor::{self, MotorSide},
-    network, orchestrator, rotary,
+    orchestrator, rotary,
 };
+
+#[cfg(feature = "wifi")]
+use tasks::wifi;
+
+#[cfg(feature = "bluetooth")]
+use tasks::bluetooth;
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
@@ -37,8 +43,14 @@ async fn main(spawner: Spawner) {
         .spawn(display::display_task(resources.i2c_bus))
         .unwrap();
 
+    #[cfg(feature = "wifi")]
     spawner
-        .spawn(network::server_task(spawner, timer.timer1, resources.wifi))
+        .spawn(wifi::server_task(spawner, timer.timer1, resources.wifi))
+        .unwrap();
+
+    #[cfg(feature = "bluetooth")]
+    spawner
+        .spawn(bluetooth::server_task(timer.timer1, resources.bluetooth))
         .unwrap();
 
     spawner
