@@ -7,22 +7,30 @@ export function deserialize(bytes: Uint8Array): Message {
 	switch (type) {
 		case 'count_updated':
 			return {
-				type: 'count_updated',
+				type,
 				left: scanner.readInt32(),
 				right: scanner.readInt32()
 			};
 		case 'target_updated':
 			return {
-				type: 'target_updated',
+				type,
 				left: scanner.readInt32(),
 				right: scanner.readInt32()
 			};
 		case 'gyro_updated':
 			return {
-				type: 'gyro_updated',
+				type,
 				x: scanner.readInt16(),
 				y: scanner.readInt16(),
 				z: scanner.readInt16()
+			};
+		case 'config_updated':
+			return {
+				type,
+				config: {
+					k_p: scanner.readFloat32(),
+					k_d: scanner.readFloat32()
+				}
 			};
 	}
 }
@@ -47,9 +55,18 @@ class Scanner {
 				return 'target_updated';
 			case 0x03:
 				return 'gyro_updated';
+			case 0x04:
+				return 'config_updated';
 			default:
 				throw new Error(`Unknown message type: ${type}`);
 		}
+	}
+
+	readFloat32(): number {
+		const view = new DataView(this.bytes.buffer, this.bytes.byteOffset, this.bytes.byteLength);
+		const value = view.getFloat32(this.offset, true);
+		this.offset += 4;
+		return value;
 	}
 
 	readInt32(): number {

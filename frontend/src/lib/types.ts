@@ -1,4 +1,8 @@
-export type Message = CountUpdatedMessage | TargetUpdatedMessage | GyroUpdatedMessage;
+export type Message =
+	| CountUpdatedMessage
+	| TargetUpdatedMessage
+	| GyroUpdatedMessage
+	| ConfigUpdatedMessage;
 export type MessageType = Message['type'];
 export type CountUpdatedMessage = {
 	type: 'count_updated';
@@ -19,7 +23,12 @@ export type GyroUpdatedMessage = {
 	z: number;
 };
 
-export type BotSettings = {
+export type ConfigUpdatedMessage = {
+	type: 'config_updated';
+	config: BotConfig;
+};
+
+export type BotConfig = {
 	k_p: number;
 	k_d: number;
 };
@@ -30,4 +39,4 @@ export type Command =
 	| { type: 'move_forward' }
 	| { type: 'move_backward' }
 	| { type: 'debug_motors' }
-	| { type: 'configure'; settings: BotSettings };
+	| { type: 'configure'; config: BotConfig };

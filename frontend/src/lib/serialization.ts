@@ -15,8 +15,8 @@ export function serialize(command: Command): Uint8Array {
 		case 'configure':
 			return new Uint8Array([
 				0x06,
-				...numberToF32LittleEndianBytes(command.settings.k_p),
-				...numberToF32LittleEndianBytes(command.settings.k_d)
+				...numberToF32LittleEndianBytes(command.config.k_p),
+				...numberToF32LittleEndianBytes(command.config.k_d)
 			]);
 	}
 }

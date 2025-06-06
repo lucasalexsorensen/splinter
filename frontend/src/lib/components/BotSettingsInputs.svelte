@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { BotSettings } from '$lib/types';
+	import type { BotConfig } from '$lib/types';
 
 	type Props = {
-		settings: BotSettings;
+		settings: BotConfig;
 		disabled?: boolean;
-		updateSettings: (settings: BotSettings) => void;
+		updateSettings: (settings: BotConfig) => void;
 	};
 
 	let { settings = $bindable(), disabled = false, updateSettings }: Props = $props();
@@ -18,7 +18,7 @@
 			id="k_p"
 			type="range"
 			min="0.0001"
-			max="0.01"
+			max="0.1"
 			step="0.0001"
 			onchange={(e) =>
 				updateSettings({
@@ -37,7 +37,7 @@
 			id="k_d"
 			type="range"
 			min="0.000"
-			max="0.01"
+			max="0.1"
 			step="0.0001"
 			onchange={(e) =>
 				updateSettings({

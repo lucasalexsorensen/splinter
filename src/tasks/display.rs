@@ -28,7 +28,10 @@ pub async fn display_task(i2c_bus: &'static I2c0Bus) {
     let mut k_p_str: heapless::String<30> = heapless::String::new();
     let mut k_d_str: heapless::String<30> = heapless::String::new();
 
+    #[cfg(feature = "wifi")]
     write!(ip_address_str, "NO IP ADDRESS").unwrap();
+    #[cfg(feature = "bluetooth")]
+    write!(ip_address_str, "BT DISCONNECTED").unwrap();
     let k_p = f32::from_bits(crate::state::K_P.load(Ordering::Relaxed));
     let k_d = f32::from_bits(crate::state::K_D.load(Ordering::Relaxed));
     write!(k_p_str, "K_P={:.4}", k_p).unwrap();
@@ -38,6 +41,7 @@ pub async fn display_task(i2c_bus: &'static I2c0Bus) {
         let display_cmd = crate::state::DISPLAY_COMMAND_QUEUE.receive().await;
         display.clear(BinaryColor::Off).unwrap();
         match display_cmd {
+            #[cfg(feature = "wifi")]
             DisplayCommand::IpChanged(ip_address) => {
                 ip_address_str.clear();
                 write!(
@@ -46,6 +50,16 @@ pub async fn display_task(i2c_bus: &'static I2c0Bus) {
                     ip_address[0], ip_address[1], ip_address[2], ip_address[3]
                 )
                 .unwrap();
+            }
+            #[cfg(feature = "bluetooth")]
+            DisplayCommand::BTConnected => {
+                ip_address_str.clear();
+                write!(ip_address_str, "BT CONNECTED").unwrap();
+            }
+            #[cfg(feature = "bluetooth")]
+            DisplayCommand::BTDisconnected => {
+                ip_address_str.clear();
+                write!(ip_address_str, "BT DISCONNECTED").unwrap();
             }
             DisplayCommand::ConfigChanged => {
                 k_p_str.clear();
