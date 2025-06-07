@@ -1,7 +1,7 @@
 use core::sync::atomic::Ordering;
 
 use crate::{
-    command::{Command, DisplayCommand, MotorCommand},
+    command::{Command, DisplayCommand},
     message::Message,
 };
 
@@ -30,13 +30,6 @@ pub async fn orchestrator_task() {
                 handle_movement(current_left_count - N_STEP, current_right_count - N_STEP).await;
             }
             Command::DebugMotors => {
-                crate::state::LEFT_MOTOR_QUEUE
-                    .send(MotorCommand::Debug(flip))
-                    .await;
-                crate::state::RIGHT_MOTOR_QUEUE
-                    .send(MotorCommand::Debug(flip))
-                    .await;
-                flip = !flip;
                 continue;
             }
             Command::Configure(config) => {
@@ -51,12 +44,8 @@ pub async fn orchestrator_task() {
 }
 
 async fn handle_movement(desired_left_count: i32, desired_right_count: i32) {
-    crate::state::LEFT_MOTOR_QUEUE
-        .send(MotorCommand::SetTarget(desired_left_count))
-        .await;
-    crate::state::RIGHT_MOTOR_QUEUE
-        .send(MotorCommand::SetTarget(desired_right_count))
-        .await;
+    crate::state::LEFT_ENCODER_TARGET.store(desired_left_count, Ordering::Relaxed);
+    crate::state::RIGHT_ENCODER_TARGET.store(desired_right_count, Ordering::Relaxed);
     crate::state::MESSAGE_QUEUE
         .send(Message::TargetUpdated {
             left: desired_left_count,

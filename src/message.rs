@@ -6,6 +6,7 @@ pub enum Message {
     GyroUpdated { x: i16, y: i16, z: i16 },
     TargetUpdated { left: i32, right: i32 },
     ConfigUpdated(BotConfig),
+    PIDDebug {},
 }
 
 impl Into<[u8; 20]> for Message {
@@ -32,6 +33,9 @@ impl Into<[u8; 20]> for Message {
                 result[0] = 0x04;
                 result[1..5].copy_from_slice(&config.k_p.to_le_bytes());
                 result[5..9].copy_from_slice(&config.k_d.to_le_bytes());
+            }
+            Message::PIDDebug {} => {
+                result[0] = 0x05;
             }
         }
         result

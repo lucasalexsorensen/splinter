@@ -214,6 +214,11 @@ async fn tx_task<C: Controller, P: PacketPool>(
             },
         };
 
+        if let Message::ConfigUpdated(_) = msg {
+            // defer this a bit so the consumer has a chance to be subscribed
+            Timer::after(Duration::from_millis(1000)).await;
+        }
+
         let msg_bytes: [u8; 20] = msg.into();
         server.comm_service.tx.set(server, &msg_bytes).unwrap();
         let notify_result = server.comm_service.tx.notify(conn, &msg_bytes).await;

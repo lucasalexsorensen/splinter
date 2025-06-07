@@ -80,7 +80,7 @@ pub fn assign_resources(p: Peripherals) -> Resources {
     mcpwm.operator0.set_timer(&mcpwm.timer0);
 
     let timer_clock_cfg = clock_cfg
-        .timer_clock_with_frequency(99, PwmWorkingMode::Increase, Rate::from_khz(5))
+        .timer_clock_with_frequency(100, PwmWorkingMode::Increase, Rate::from_khz(5))
         .unwrap();
     mcpwm.timer0.start(timer_clock_cfg);
     let (left_pwm_pin, right_pwm_pin) = mcpwm.operator0.with_pins(
@@ -109,8 +109,8 @@ pub fn assign_resources(p: Peripherals) -> Resources {
         i2c_bus,
         left_motor: MotorResources {
             pwm_pin: AnyPwmPin::LeftPin(left_pwm_pin),
-            backward_pin: p.GPIO12.into(),
-            forward_pin: p.GPIO14.into(),
+            backward_pin: p.GPIO14.into(),
+            forward_pin: p.GPIO12.into(),
         },
         left_encoder: RotaryEncoderResources {
             encoder_a_pin: p.GPIO32.into(),
@@ -118,8 +118,8 @@ pub fn assign_resources(p: Peripherals) -> Resources {
         },
         right_motor: MotorResources {
             pwm_pin: AnyPwmPin::RightPin(right_pwm_pin),
-            backward_pin: p.GPIO26.into(),
-            forward_pin: p.GPIO27.into(),
+            backward_pin: p.GPIO27.into(),
+            forward_pin: p.GPIO26.into(),
         },
         right_encoder: RotaryEncoderResources {
             encoder_a_pin: p.GPIO34.into(),

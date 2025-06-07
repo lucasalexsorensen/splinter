@@ -2,7 +2,9 @@ export type Message =
 	| CountUpdatedMessage
 	| TargetUpdatedMessage
 	| GyroUpdatedMessage
-	| ConfigUpdatedMessage;
+	| ConfigUpdatedMessage
+	| PIDDebugMessage;
+
 export type MessageType = Message['type'];
 export type CountUpdatedMessage = {
 	type: 'count_updated';
@@ -26,6 +28,10 @@ export type GyroUpdatedMessage = {
 export type ConfigUpdatedMessage = {
 	type: 'config_updated';
 	config: BotConfig;
+};
+
+export type PIDDebugMessage = {
+	type: 'pid_debug';
 };
 
 export type BotConfig = {

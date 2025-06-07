@@ -32,6 +32,10 @@ export function deserialize(bytes: Uint8Array): Message {
 					k_d: scanner.readFloat32()
 				}
 			};
+		case 'pid_debug':
+			return {
+				type
+			};
 	}
 }
 
