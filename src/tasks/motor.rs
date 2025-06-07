@@ -27,12 +27,6 @@ pub async fn motor_task(mut r: MotorResources, side: MotorSide) {
 
     let mut prev_error = 0;
     let mut error = 0;
-    let mut current_speed = 0.0f32; // Current actual motor speed (-1.0 to 1.0)
-
-    // Acceleration/deceleration parameters
-    const MAX_ACCELERATION: f32 = 0.15; // Maximum change in speed per 50ms cycle
-    const MIN_SPEED_THRESHOLD: f32 = 0.05; // Minimum speed before stopping completely
-
     loop {
         Timer::after(Duration::from_millis(50)).await;
 
@@ -45,48 +39,40 @@ pub async fn motor_task(mut r: MotorResources, side: MotorSide) {
         // negative => we need to go backward to decrease the count
         error = target_count - current_count;
 
+        if error.abs() < 10 {
+            backward.set_low();
+            forward.set_low();
+            continue;
+        }
+
+        // Derivative is the difference between the current error and the previous error
+        // positive => the error has increased since last time
+        // negative => the error has decreased since last time
+        let diff = error - prev_error;
+
         let k_p = f32::from_bits(crate::state::K_P.load(Ordering::Relaxed));
         let k_d = f32::from_bits(crate::state::K_D.load(Ordering::Relaxed));
 
         let p_term = k_p * (error as f32);
-        let d_term = k_d * ((error - prev_error) as f32);
+        let d_term = k_d * (diff as f32);
 
-        let mut target_speed = p_term + d_term;
-        target_speed = target_speed.clamp(-1.0, 1.0);
+        let mut val = p_term + d_term;
+        val = val.clamp(-1.0, 1.0);
 
-        // If we're close to target, gradually slow down to zero
-        if error.abs() < 10 {
-            target_speed = 0.0;
-        }
-
-        // Apply acceleration/deceleration ramping
-        let speed_diff = target_speed - current_speed;
-        let max_change = if speed_diff.abs() <= MAX_ACCELERATION {
-            speed_diff // Can reach target speed this cycle
-        } else {
-            MAX_ACCELERATION * speed_diff.signum() // Limit to max acceleration
-        };
-
-        current_speed += max_change;
-
-        // Apply minimum speed threshold - if speed is very low, just stop
-        if current_speed.abs() < MIN_SPEED_THRESHOLD {
-            current_speed = 0.0;
-        }
-
-        // Set motor direction and PWM based on current_speed
-        if current_speed.abs() < 0.01 {
+        if val.abs() < 0.01 {
             forward.set_low();
             backward.set_low();
-        } else if current_speed > 0.0 {
+            continue;
+        }
+
+        if val.is_sign_positive() {
             forward.set_high();
             backward.set_low();
-            set_pwm_strength(&mut r.pwm_pin, current_speed);
         } else {
             forward.set_low();
             backward.set_high();
-            set_pwm_strength(&mut r.pwm_pin, current_speed);
         }
+        set_pwm_strength(&mut r.pwm_pin, val);
     }
 }
 
