@@ -14,7 +14,7 @@ pub async fn orchestrator_task() {
         let current_left_count = crate::state::LEFT_ENCODER_COUNT.load(Ordering::Relaxed);
         let current_right_count = crate::state::RIGHT_ENCODER_COUNT.load(Ordering::Relaxed);
 
-        const N_TURN: i32 = 1600;
+        const N_TURN: i32 = 1500;
         const N_STEP: i32 = 5000;
         match command {
             Command::TurnLeft => {

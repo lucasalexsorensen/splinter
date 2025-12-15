@@ -70,7 +70,11 @@ async fn connect_task(mut controller: WifiController<'static>) {
 }
 
 #[embassy_executor::task]
-pub async fn server_task(spawner: Spawner, timer: HardwareTimer, mut resources: WifiResources) {
+pub async fn server_task(
+    spawner: Spawner,
+    timer: HardwareTimer<'static>,
+    mut resources: WifiResources,
+) {
     let esp_wifi_ctrl = &*mk_static!(
         EspWifiController<'static>,
         init(timer, resources.rng, resources.wifi_clock).unwrap()
@@ -270,10 +274,10 @@ async fn handle_read_frame(buffer: &mut [u8], socket: &mut TcpSocket<'_>) {
 async fn handle_write(socket: &mut TcpSocket<'_>, message: Message) {
     let response_bytes: [u8; 20] = message.into();
     socket
-        .write(&[0b10000010, response_data.len() as u8])
+        .write(&[0b10000010, response_bytes.len() as u8])
         .await
         .unwrap();
-    socket.write(&response_data).await.unwrap();
+    socket.write(&response_bytes).await.unwrap();
     socket.flush().await.unwrap();
 }
 

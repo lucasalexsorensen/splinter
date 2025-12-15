@@ -8,6 +8,7 @@ name = "splinter"
 path = "./src/main.rs"
 
 [dependencies]
+anyhow = { version = "1.0", default-features = false }
 trouble-host = { git = "https://github.com/lucasalexsorensen/trouble.git", rev = "0567b73", optional = true, features = [
   "derive",
 ] }

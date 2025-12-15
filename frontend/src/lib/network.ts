@@ -106,6 +106,6 @@ export class BluetoothConnection extends ConnectionBase {
 	}
 
 	async write(data: Uint8Array): Promise<void> {
-		this.rx?.writeValue(data);
+		this.rx?.writeValue(data as BufferSource);
 	}
 }

@@ -1,6 +1,8 @@
 fn main() {
     use dotenvy::dotenv;
     dotenv().ok();
+    println!("cargo-rerun-if-env-changed=WIFI_SSID");
+    println!("cargo-rerun-if-env-changed=WIFI_PASSWORD");
     let ssid = std::env::var("WIFI_SSID").unwrap();
     let password = std::env::var("WIFI_PASSWORD").unwrap();
     println!("cargo:warning=WIFI_SSID={}", ssid);
