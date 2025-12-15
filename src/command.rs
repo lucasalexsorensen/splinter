@@ -36,11 +36,7 @@ impl From<&[u8]> for Command {
 
 #[derive(Debug)]
 pub enum DisplayCommand {
-    #[cfg(feature = "wifi")]
-    IpChanged([u8; 4]),
-    #[cfg(feature = "bluetooth")]
     BTConnected,
-    #[cfg(feature = "bluetooth")]
     BTDisconnected,
     ConfigChanged,
 }

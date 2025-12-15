@@ -1,15 +1,4 @@
 fn main() {
-    use dotenvy::dotenv;
-    dotenv().ok();
-    println!("cargo-rerun-if-env-changed=WIFI_SSID");
-    println!("cargo-rerun-if-env-changed=WIFI_PASSWORD");
-    let ssid = std::env::var("WIFI_SSID").unwrap();
-    let password = std::env::var("WIFI_PASSWORD").unwrap();
-    println!("cargo:warning=WIFI_SSID={}", ssid);
-    println!("cargo:warning=WIFI_PASSWORD={}", password);
-    println!("cargo:rustc-env=WIFI_SSID={}", ssid);
-    println!("cargo:rustc-env=WIFI_PASSWORD={}", password);
-
     linker_be_nice();
     println!("cargo:rustc-link-arg=-Tdefmt.x");
     // make sure linkall.x is the last linker script (otherwise might cause problems with flip-link)

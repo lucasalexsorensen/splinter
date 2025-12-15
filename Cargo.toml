@@ -24,11 +24,6 @@ embassy-executor = { version = "0.7.0", features = [
   "task-arena-size-20480",
 ] }
 embassy-futures = { version = "0.1.1", features = ["defmt"] }
-embassy-net = { version = "0.7.0", features = [
-  "tcp",
-  "dhcpv4",
-  "defmt",
-], optional = true }
 embassy-sync = { version = "0.6.2", features = ["defmt"] }
 embassy-time = { version = "0.4.0", features = ["generic-queue-8"] }
 embedded-graphics = "0.8.1"
@@ -50,11 +45,6 @@ esp-println = { version = "0.14.0", features = [
   "esp32",
   "log-04",
 ] }
-esp-wifi = { version = "0.14.1", features = [
-  "defmt",
-  "esp32",
-  "wifi",
-], optional = true }
 hcsr04_async = "0.4.0"
 heapless = "0.8.0"
 libm = "0.2.15"
@@ -62,17 +52,11 @@ mpu6050-dmp = { version = "0.6.0", features = ["async"] }
 rotary-encoder-hal = "0.6.0"
 ssd1306 = { version = "0.10.0", features = ["async"] }
 static_cell = { version = "2.1.0", features = ["nightly"] }
-base64 = { version = "0.21", default-features = false, optional = true }
-sha1 = { version = "0.10", default-features = false, optional = true }
 bt-hci = "=0.3.1"
 
 [features]
 default = ["bluetooth"]
 bluetooth = ["dep:trouble-host", "dep:esp-wifi-ble-only"]
-wifi = ["dep:esp-wifi", "dep:embassy-net", "dep:base64", "dep:sha1"]
-
-[build-dependencies]
-dotenvy = "0.15"
 
 
 [profile.dev]

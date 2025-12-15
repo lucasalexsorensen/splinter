@@ -5,4 +5,3 @@ pub mod motor;
 pub mod orchestrator;
 pub mod rotary;
 pub mod ultrasonic;
-pub mod wifi;

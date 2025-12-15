@@ -4,7 +4,7 @@ use esp_hal::i2c::master::{BusTimeout, Config as I2cConfig, I2c};
 use esp_hal::mcpwm::operator::{PwmPin, PwmPinConfig};
 use esp_hal::mcpwm::timer::PwmWorkingMode;
 use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
-use esp_hal::peripherals::{BT, MCPWM0, RADIO_CLK, TIMG1, WIFI};
+use esp_hal::peripherals::{BT, MCPWM0, RADIO_CLK, TIMG1};
 use esp_hal::rng::Rng;
 use esp_hal::time::Rate;
 use esp_hal::Async;
@@ -12,12 +12,6 @@ use esp_hal::{gpio::AnyPin, peripherals::Peripherals};
 use static_cell::StaticCell;
 
 pub type I2c0Bus = Mutex<NoopRawMutex, I2c<'static, Async>>;
-
-pub struct WifiResources {
-    pub rng: Rng,
-    pub wifi: WIFI<'static>,
-    pub wifi_clock: RADIO_CLK<'static>,
-}
 
 pub struct BluetoothResources {
     pub rng: Rng,
@@ -48,9 +42,6 @@ pub struct RotaryEncoderResources {
 }
 
 pub struct Resources {
-    #[cfg(feature = "wifi")]
-    pub wifi: WifiResources,
-    #[cfg(feature = "bluetooth")]
     pub bluetooth: BluetoothResources,
     pub timer: TIMG1<'static>,
     pub i2c_bus: &'static I2c0Bus,
@@ -93,13 +84,6 @@ pub fn assign_resources(p: Peripherals) -> Resources {
     let rng = Rng::new(p.RNG);
 
     Resources {
-        #[cfg(feature = "wifi")]
-        wifi: WifiResources {
-            rng,
-            wifi: p.WIFI,
-            wifi_clock: p.RADIO_CLK,
-        },
-        #[cfg(feature = "bluetooth")]
         bluetooth: BluetoothResources {
             rng,
             bt: p.BT,

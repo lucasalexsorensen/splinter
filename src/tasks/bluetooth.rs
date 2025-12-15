@@ -1,5 +1,3 @@
-#![cfg(feature = "bluetooth")]
-
 use core::sync::atomic::Ordering;
 
 use embassy_futures::join::join;
