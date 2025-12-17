@@ -11,9 +11,11 @@ use crate::message::Message;
 
 pub static LEFT_ENCODER_COUNT: AtomicI32 = AtomicI32::new(0);
 pub static RIGHT_ENCODER_COUNT: AtomicI32 = AtomicI32::new(0);
-pub static GYRO_X: AtomicI16 = AtomicI16::new(0);
-pub static GYRO_Y: AtomicI16 = AtomicI16::new(0);
-pub static GYRO_Z: AtomicI16 = AtomicI16::new(0);
+
+// MPU6050 orientation data (yaw/pitch/roll in degrees * 100 for 2 decimal precision)
+pub static YAW: AtomicI16 = AtomicI16::new(0);
+pub static PITCH: AtomicI16 = AtomicI16::new(0);
+pub static ROLL: AtomicI16 = AtomicI16::new(0);
 
 pub static LEFT_ENCODER_TARGET: AtomicI32 = AtomicI32::new(0);
 pub static RIGHT_ENCODER_TARGET: AtomicI32 = AtomicI32::new(0);

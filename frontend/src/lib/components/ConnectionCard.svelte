@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Check, X, Loader, Ban, RotateCcw, Bluetooth, Wifi, Unlink2 } from '@lucide/svelte';
+	import { Check, X, Loader, Ban, RotateCcw, Bluetooth, Unlink2 } from '@lucide/svelte';
 	import type { Component } from 'svelte';
 	import type { ConnectionState } from '$lib/network';
 	type Props = {

@@ -8,7 +8,9 @@ use esp_println::println;
 use trouble_host::prelude::*;
 
 use crate::command::DisplayCommand;
+use crate::config;
 use crate::message::Message;
+use crate::state;
 use crate::{command::Command, resources::BluetoothResources};
 use esp_hal::timer::timg::Timer as HardwareTimer;
 use esp_wifi_ble_only::ble::controller::BleConnector;
@@ -76,19 +78,19 @@ pub async fn server_task(timer: HardwareTimer<'static>, resources: BluetoothReso
 
     let _ = join(ble_task(runner), async {
         loop {
-            crate::state::DISPLAY_COMMAND_QUEUE
+            state::DISPLAY_COMMAND_QUEUE
                 .send(DisplayCommand::BTDisconnected)
                 .await;
             match advertise("Rat", &mut peripheral, &server).await {
                 Ok(conn) => {
-                    crate::state::DISPLAY_COMMAND_QUEUE
+                    state::DISPLAY_COMMAND_QUEUE
                         .send(DisplayCommand::BTConnected)
                         .await;
 
-                    crate::state::MESSAGE_QUEUE
-                        .send(Message::ConfigUpdated(crate::config::BotConfig {
-                            k_p: f32::from_bits(crate::state::K_P.load(Ordering::Relaxed)),
-                            k_d: f32::from_bits(crate::state::K_D.load(Ordering::Relaxed)),
+                    state::MESSAGE_QUEUE
+                        .send(Message::ConfigUpdated(config::BotConfig {
+                            k_p: f32::from_bits(state::K_P.load(Ordering::Relaxed)),
+                            k_d: f32::from_bits(state::K_D.load(Ordering::Relaxed)),
                         }))
                         .await;
 
@@ -192,7 +194,36 @@ async fn advertise<'values, 'server, C: Controller>(
 async fn process_rx_data(data: &[u8]) {
     let command: Command = data.into();
     println!("[rx_handler] Received command: {:?}", command);
-    crate::state::COMMAND_QUEUE.send(command).await;
+    state::COMMAND_QUEUE.send(command).await;
+}
+
+#[derive(Clone, Copy)]
+enum PeriodicUpdate {
+    Orientation,
+    EncoderCount,
+}
+
+impl PeriodicUpdate {
+    fn next(self) -> Self {
+        match self {
+            Self::Orientation => Self::EncoderCount,
+            Self::EncoderCount => Self::Orientation,
+        }
+    }
+
+    fn to_message(self) -> Message {
+        match self {
+            Self::Orientation => Message::OrientationUpdated {
+                yaw: state::YAW.load(Ordering::Relaxed),
+                pitch: state::PITCH.load(Ordering::Relaxed),
+                roll: state::ROLL.load(Ordering::Relaxed),
+            },
+            Self::EncoderCount => Message::CountUpdated {
+                left: state::LEFT_ENCODER_COUNT.load(Ordering::Relaxed),
+                right: state::RIGHT_ENCODER_COUNT.load(Ordering::Relaxed),
+            },
+        }
+    }
 }
 
 async fn tx_task<C: Controller, P: PacketPool>(
@@ -200,20 +231,23 @@ async fn tx_task<C: Controller, P: PacketPool>(
     conn: &GattConnection<'_, '_, P>,
     _stack: &Stack<'_, C, P>,
 ) {
+    let mut next_update = PeriodicUpdate::Orientation;
     loop {
-        let queue_future = crate::state::MESSAGE_QUEUE.receive();
-        let timer_future = Timer::after(Duration::from_millis(50));
+        let queue_future = state::MESSAGE_QUEUE.receive();
+        let timer_future = Timer::after(Duration::from_millis(25));
 
         let msg = match select(queue_future, timer_future).await {
             Either::First(msg) => msg,
-            Either::Second(_) => Message::CountUpdated {
-                left: crate::state::LEFT_ENCODER_COUNT.load(Ordering::Relaxed),
-                right: crate::state::RIGHT_ENCODER_COUNT.load(Ordering::Relaxed),
-            },
+            Either::Second(_) => {
+                let update = next_update;
+                next_update = next_update.next();
+                update.to_message()
+            }
         };
 
         if let Message::ConfigUpdated(_) = msg {
             // defer this a bit so the consumer has a chance to be subscribed
+
             Timer::after(Duration::from_millis(1000)).await;
         }
 

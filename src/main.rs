@@ -20,7 +20,7 @@ use esp_hal::timer::timg::TimerGroup;
 use tasks::{
     display, gyro,
     motor::{self, DualMotorResources},
-    orchestrator, rotary,
+    orchestrator, rotary_encoder,
 };
 
 use tasks::bluetooth;
@@ -44,22 +44,22 @@ async fn spawn_tasks(spawner: Spawner, resources: resources::Resources) -> Resul
     esp_hal_embassy::init(timer.timer0);
     spawner.spawn(display::display_task(resources.i2c_bus))?;
     spawner.spawn(bluetooth::server_task(timer.timer1, resources.bluetooth))?;
-    spawner.spawn(rotary::rotary_task(
+    spawner.spawn(rotary_encoder::rotary_encoder_task(
         resources.left_encoder,
         &crate::state::LEFT_ENCODER_COUNT,
         true,
     ))?;
-    spawner.spawn(rotary::rotary_task(
+    spawner.spawn(rotary_encoder::rotary_encoder_task(
         resources.right_encoder,
         &crate::state::RIGHT_ENCODER_COUNT,
         false,
     ))?;
     spawner.spawn(gyro::gyro_task(resources.i2c_bus))?;
-    let dual_motor_resources = DualMotorResources {
-        left_motor: resources.left_motor,
-        right_motor: resources.right_motor,
-    };
-    spawner.spawn(motor::dual_motor_task(dual_motor_resources))?;
+    // let dual_motor_resources = DualMotorResources {
+    //     left_motor: resources.left_motor,
+    //     right_motor: resources.right_motor,
+    // };
+    // spawner.spawn(motor::dual_motor_task(dual_motor_resources))?;
     spawner.spawn(orchestrator::orchestrator_task())?;
     Ok(())
 }

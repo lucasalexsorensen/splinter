@@ -28,12 +28,6 @@ impl From<&[u8]> for Command {
     }
 }
 
-// #[derive(Debug)]
-// pub enum MotorCommand {
-//     SetTarget(i32),
-//     Debug(bool),
-// }
-
 #[derive(Debug)]
 pub enum DisplayCommand {
     BTConnected,

@@ -18,33 +18,6 @@ abstract class ConnectionBase implements IConnection {
 	onStateChange(state: ConnectionState) {}
 }
 
-export class WebsocketConnection extends ConnectionBase {
-	private socket?: WebSocket;
-
-	constructor(private url: string) {
-		super();
-	}
-
-	async open(): Promise<void> {
-		// no-op
-		this.socket = new WebSocket(this.url);
-		this.socket.binaryType = 'arraybuffer';
-
-		this.socket.onopen = () => this.onStateChange('connected');
-		this.socket.onclose = () => this.onStateChange('disconnected');
-		this.socket.onerror = () => this.onStateChange('error');
-		this.socket.onmessage = (event) => this.onData(new Uint8Array(event.data));
-	}
-
-	async close(): Promise<void> {
-		this.socket?.close();
-	}
-
-	async write(data: Uint8Array): Promise<void> {
-		this.socket?.send(data);
-	}
-}
-
 const BT_SERVICE_UUID = 'deadbeef-dead-beef-dead-beefdeadbeef';
 const TX_CHARACTERISTIC_UUID = '408813df-5dd4-1f87-ec11-cdb001100000';
 const RX_CHARACTERISTIC_UUID = '408813df-5dd4-1f87-ec11-cdb001100001';

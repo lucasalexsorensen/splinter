@@ -5,33 +5,25 @@
 		BotStateChart,
 		CommandQueue,
 		ConnectionCard,
-		Settings
+		OrientationChart
 	} from '$lib/components';
 	import { deserialize } from '$lib/deserialization';
-	import {
-		WebsocketConnection,
-		type IConnection,
-		type ConnectionState,
-		BluetoothConnection
-	} from '$lib/network';
+	import { type IConnection, type ConnectionState, BluetoothConnection } from '$lib/network';
 	import { serialize } from '$lib/serialization';
 	import { type BotConfig, type Command, type Message } from '$lib/types';
 	import { onDestroy, onMount } from 'svelte';
 
-	const WS_URL = 'ws://localhost:9999';
-	let connectionMode = $state<'websocket' | 'bluetooth'>('bluetooth');
 	let connectionState = $state<ConnectionState>('disconnected');
 
-	const buildConnection = (mode: 'websocket' | 'bluetooth'): IConnection => {
-		let connection =
-			mode === 'websocket' ? new WebsocketConnection(WS_URL) : new BluetoothConnection();
+	const buildConnection = (): IConnection => {
+		let connection = new BluetoothConnection();
 		connection.onStateChange = onStateChange;
 		connection.onData = onData;
 		return connection;
 	};
 	let connection: IConnection | null = $state(null);
 	onMount(() => {
-		connection = buildConnection(connectionMode);
+		connection = buildConnection();
 	});
 
 	function onStateChange(state: ConnectionState) {
@@ -77,6 +69,7 @@
 	let gyroX = $state<number[]>([]);
 	let gyroY = $state<number[]>([]);
 	let gyroZ = $state<number[]>([]);
+	let activeTab = $state<'encoders' | 'orientation'>('encoders');
 
 	onDestroy(() => {
 		connection?.close();
@@ -116,11 +109,33 @@
 				sendCommand(cmd);
 			}}
 		/>
-		<Settings bind:connectionMode />
 	</div>
 	<div class="divider divider-horizontal"></div>
-	<div class="flex h-screen w-2/3 flex-col items-center justify-between gap-4 p-4">
-		<BotStateChart {leftCounts} {rightCounts} {leftTarget} {rightTarget} />
-		<!-- <CommandQueue /> -->
+	<div class="flex h-screen w-2/3 flex-col gap-4 p-4">
+		<div role="tablist" class="tabs tabs-box flex justify-center">
+			<button
+				role="tab"
+				class="tab"
+				class:tab-active={activeTab === 'encoders'}
+				onclick={() => (activeTab = 'encoders')}
+			>
+				Encoder Counts
+			</button>
+			<button
+				role="tab"
+				class="tab"
+				class:tab-active={activeTab === 'orientation'}
+				onclick={() => (activeTab = 'orientation')}
+			>
+				MPU6050 Orientation
+			</button>
+		</div>
+		<div class="flex-1">
+			{#if activeTab === 'encoders'}
+				<BotStateChart {leftCounts} {rightCounts} {leftTarget} {rightTarget} />
+			{:else}
+				<OrientationChart yaw={gyroX} pitch={gyroY} roll={gyroZ} />
+			{/if}
+		</div>
 	</div>
 </div>
